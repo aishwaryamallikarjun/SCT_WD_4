@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Aesthetic To-Do App with Calendar</title>
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(120deg, #ffecd2 0%, #fcb69f 100%);
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 900px;
+    margin: auto;
+    background: #fff5f0ee;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  }
+  h1 { text-align: center; }
+  .input-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  input, button {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    flex: 1;
+    font-size: 14px;
+  }
+  button {
+    background: #ff9a8b;
+    color: #fff;
+    cursor: pointer;
+    flex: none;
+    transition: 0.3s;
+  }
+  button:hover {
+    background: #fad0c4; 
+    color: #333; 
+  }
+  .task {
+    background: #f0f8ff;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 8px;
+  }
+  .completed { 
+    text-decoration: line-through; 
+    color: gray; 
+  }
+  #calendarView { 
+    display: none; 
+    margin-top: 20px; 
+  }
+  .calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+  .calendar div {
+    background: #ffe4e1;
+    padding: 10px;
+    min-height: 80px;
+    border-radius: 8px;
+    overflow-wrap: break-word;
+    font-size: 12px;
+    position: relative;
+  }
+  .calendar .day {
+    font-weight: bold;
+    text-align: right;
+  }
+  .calendar-task {
+    background: #ff9a8b;
+    color: #fff;
+    padding: 2px 4px;
+    margin-top: 3px;
+    border-radius: 5px;
+    font-size: 10px;
+    display: block;
+  }
+  /* Responsive Design */
+  @media (max-width: 600px) {
+    .input-row {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .calendar {
+      grid-template-columns: repeat(3, 1fr); /* 3 columns on small screens */
+    }
+    .calendar .day {
+      font-size: 10px;
+      padding: 5px;
+    }
+    button, input, select {
+      width: 100%; /* make form elements full width */
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Advanced Aesthetic To-Do App</h1>
+  <div class="input-row">
+    <input type="text" id="taskName" placeholder="Task Name">
+    <input type="date" id="taskDate">
+    <input type="time" id="taskTime">
+    <button onclick="addTask()">Add Task</button>
+    <button onclick="displayTasks()">Task List</button>
+    <button onclick="toggleCalendar()">Calendar View</button>
+    <button onclick="sortByDateTime()">Sort Date/Time</button>
+  </div>
+
+  <input type="text" id="search" placeholder="Search tasks by name..." onkeyup="searchTasks()" style="width:90%;margin:10px 0;">
+
+  <div id="taskList"></div>
+
+  <div id="calendarView">
+    <h3>Calendar View (All Months)</h3>
+    <select id="monthSelector" onchange="generateCalendar()"></select>
+    <select id="yearSelector" onchange="generateCalendar()"></select>
+    <div class="calendar" id="calendar"></div>
+  </div>
+</div>
+
+<script>
+let tasks = [];
+
+function populateMonthYearSelectors() {
+  const monthSelector = document.getElementById('monthSelector');
+  const yearSelector = document.getElementById('yearSelector');
+
+  for (let m = 0; m < 12; m++) {
+    let option = document.createElement('option');
+    option.value = m;
+    option.text = new Date(0, m).toLocaleString('default', { month: 'long' });
+    monthSelector.add(option);
+  }
+
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear - 5; y <= currentYear + 5; y++) {
+    let option = document.createElement('option');
+    option.value = y;
+    option.text = y;
+    yearSelector.add(option);
+  }
+
+  monthSelector.value = new Date().getMonth();
+  yearSelector.value = new Date().getFullYear();
+}
+window.onload = populateMonthYearSelectors;
+
+function addTask() {
+  const name = document.getElementById('taskName').value.trim();
+  const date = document.getElementById('taskDate').value;
+  const time = document.getElementById('taskTime').value;
+
+  if(name === "" || date === "" || time === "") {
+    alert("Please enter Task Name, Date, and Time.");
+    return;
+  }
+
+  tasks.push({ id: Date.now(), name, date, time, completed: false });
+  clearInputs();
+  displayTasks();
+}
+
+function clearInputs() {
+  document.getElementById('taskName').value = '';
+  document.getElementById('taskDate').value = '';
+  document.getElementById('taskTime').value = '';
+}
+
+function displayTasks() {
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  tasks.forEach(task => {
+    const div = document.createElement('div');
+    div.className = 'task';
+    if(task.completed) div.classList.add('completed');
+    div.innerHTML = `
+      <strong>${task.name}</strong><br>${task.date} ${task.time}<br>
+      <button onclick="toggleComplete(${task.id})">${task.completed ? 'Undo' : 'Complete'}</button>
+      <button onclick="editTask(${task.id})">Edit</button>
+      <button onclick="deleteTask(${task.id})">Delete</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function toggleComplete(id) {
+  tasks = tasks.map(t => t.id === id ? {...t, completed: !t.completed} : t);
+  displayTasks();
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  displayTasks();
+}
+
+function editTask(id) {
+  const task = tasks.find(t => t.id === id);
+
+  const editForm = document.createElement('div');
+  editForm.innerHTML = `
+    <h3>Edit Task</h3>
+    <input type="text" id="editName" value="${task.name}">
+    <input type="date" id="editDate" value="${task.date}">
+    <input type="time" id="editTime" value="${task.time}">
+    <button onclick="saveEdit(${id})">Save</button>
+    <button onclick="cancelEdit()">Cancel</button>
+  `;
+
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  list.appendChild(editForm);
+}
+
+function saveEdit(id) {
+  const newName = document.getElementById('editName').value.trim();
+  const newDate = document.getElementById('editDate').value;
+  const newTime = document.getElementById('editTime').value;
+
+  if(newName === "" || newDate === "" || newTime === "") {
+    alert("All fields are required!");
+    return;
+  }
+
+  const task = tasks.find(t => t.id === id);
+  task.name = newName;
+  task.date = newDate;
+  task.time = newTime;
+
+  displayTasks();
+}
+
+function cancelEdit() {
+  displayTasks();
+}
+
+function toggleCalendar() {
+  const view = document.getElementById('calendarView');
+  view.style.display = view.style.display === 'none' ? 'block' : 'none';
+  generateCalendar();
+}
+
+function generateCalendar() {
+  const calendar = document.getElementById('calendar');
+  const month = parseInt(document.getElementById('monthSelector').value);
+  const year = parseInt(document.getElementById('yearSelector').value);
+  calendar.innerHTML = '';
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    const dayDiv = document.createElement('div');
+    dayDiv.innerHTML = `<strong>${d}</strong>`;
+    dayDiv.style.background = '#ff9a8b';
+    dayDiv.style.color = '#fff';
+    calendar.appendChild(dayDiv);
+  });
+
+  for(let i=0; i<firstDay; i++){
+    calendar.appendChild(document.createElement('div'));
+  }
+
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayDiv = document.createElement('div');
+    dayDiv.classList.add('day');
+    dayDiv.innerHTML = `<div>${day}</div>`;
+
+    const tasksForDay = tasks.filter(t => t.date === dateStr);
+    tasksForDay.forEach(task => {
+      const taskEl = document.createElement('span');
+      taskEl.className = 'calendar-task';
+      taskEl.textContent = `${task.name} @ ${task.time}`;
+      dayDiv.appendChild(taskEl);
+    });
+
+    calendar.appendChild(dayDiv);
+  }
+}
+
+function searchTasks() {
+  const query = document.getElementById('search').value.toLowerCase();
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  tasks.filter(t => t.name.toLowerCase().includes(query)).forEach(task => {
+    const div = document.createElement('div');
+    div.className = 'task';
+    if(task.completed) div.classList.add('completed');
+    div.innerHTML = `
+      <strong>${task.name}</strong><br>${task.date} ${task.time}<br>
+      <button onclick="toggleComplete(${task.id})">${task.completed ? 'Undo' : 'Complete'}</button>
+      <button onclick="editTask(${task.id})">Edit</button>
+      <button onclick="deleteTask(${task.id})">Delete</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function sortByDateTime() {
+  tasks.sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
+  displayTasks();
+}
+</script>
+
+</body>
+</html>
